@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -33,7 +34,7 @@ func (q *Quiz) Start() {
 		case <-timer.C:
 			return
 		case ans := <-q.answer:
-			if p.answer == ans {
+			if strings.ToLower(p.answer) == strings.ToLower(ans) {
 				q.score++
 			}
 		}

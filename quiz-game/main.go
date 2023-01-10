@@ -4,8 +4,10 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/maeldonn/gophercises/quiz-game/quiz"
 )
@@ -13,11 +15,13 @@ import (
 var (
 	csvFilname string
 	limit      int
+	shuffle    bool
 )
 
 func init() {
 	flag.StringVar(&csvFilname, "csv", "problems.csv", "a csv file in a format of 'question, answer'")
 	flag.IntVar(&limit, "limit", 30, "The time limit for the quiz in seconds")
+	flag.BoolVar(&shuffle, "shuffle", false, "Shuffle the quiz order")
 	flag.Parse()
 }
 
@@ -26,6 +30,10 @@ func main() {
 		lines    = readCsv(csvFilname)
 		problems = parseLines(lines)
 	)
+
+	if shuffle {
+		shuffleProblems(problems)
+	}
 
 	quiz := quiz.New(problems, limit)
 	quiz.Start()
@@ -58,4 +66,9 @@ func parseLines(lines [][]string) []quiz.Problem {
 		p[i] = quiz.NewProblem(line[0], strings.TrimSpace(line[1]))
 	}
 	return p
+}
+
+func shuffleProblems(p []quiz.Problem) {
+	rand.Seed(time.Now().Unix())
+	rand.Shuffle(len(p), func(i, j int) { p[i], p[j] = p[j], p[i] })
 }
