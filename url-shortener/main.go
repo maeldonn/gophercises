@@ -1,36 +1,39 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 
 	"github.com/maeldonn/gophercises/url-shortener/urlshort"
 )
 
+var (
+	yamlFilename string
+	jsonFilename string
+)
+
+func init() {
+	flag.StringVar(&yamlFilename, "yaml", "", "a yaml file in a format path, url")
+	flag.StringVar(&jsonFilename, "json", "", "a json file in a format path, url")
+	flag.Parse()
+}
+
 func main() {
 	mux := defaultMux()
 
-	// Build the MapHandler using the mux as the fallback
-	pathsToUrls := map[string]string{
-		"/urlshort-godoc": "https://godoc.org/github.com/gophercises/urlshort",
-		"/yaml-godoc":     "https://godoc.org/gopkg.in/yaml.v2",
-	}
-	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
-
-	// Build the YAMLHandler using the mapHandler as the
-	// fallback
-	yaml := `
-- path: /urlshort
-  url: https://github.com/gophercises/urlshort
-- path: /urlshort-final
-  url: https://github.com/gophercises/urlshort/tree/solution
-`
-	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
+	yamlHandler, err := urlshort.YAMLHandler(yamlFilename, mux)
 	if err != nil {
 		panic(err)
 	}
+
+	jsonHandler, err := urlshort.JSONHandler(jsonFilename, yamlHandler)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", jsonHandler)
 }
 
 func defaultMux() *http.ServeMux {
@@ -40,6 +43,5 @@ func defaultMux() *http.ServeMux {
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, world!")
+	fmt.Fprintln(w, "Invalid path")
 }
-

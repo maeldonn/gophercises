@@ -1,17 +1,11 @@
 package urlshort
 
 import (
+	"errors"
+	"io/ioutil"
 	"net/http"
-
-	"gopkg.in/yaml.v2"
 )
 
-// MapHandler will return an http.HandlerFunc (which also
-// implements http.Handler) that will attempt to map any
-// paths (keys in the map) to their corresponding URL (values
-// that each key in the map points to, in string format).
-// If the path is not provided in the map, then the fallback
-// http.Handler will be called instead.
 func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if val, ok := pathsToUrls[r.URL.Path]; ok {
@@ -22,23 +16,12 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 	}
 }
 
-// YAMLHandler will parse the provided YAML and then return
-// an http.HandlerFunc (which also implements http.Handler)
-// that will attempt to map any paths to their corresponding
-// URL. If the path is not provided in the YAML, then the
-// fallback http.Handler will be called instead.
-//
-// YAML is expected to be in the format:
-//
-//   - path: /some-path
-//     url: https://www.some-url.com/demo
-//
-// The only errors that can be returned all related to having
-// invalid YAML data.
-//
-// See MapHandler to create a similar http.HandlerFunc via
-// a mapping of paths to urls.
-func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
+func YAMLHandler(filename string, fallback http.Handler) (http.HandlerFunc, error) {
+	yml, err := readFile(filename, fallback)
+	if err != nil {
+		return fallbackHandler(fallback), nil
+	}
+
 	parsedYaml, err := parseYAML(yml)
 	if err != nil {
 		return nil, err
@@ -48,27 +31,31 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(pathMap, fallback), nil
 }
 
-type pathUrl struct {
-	Path string `yaml:"path"`
-	URL  string `yaml:"url"`
-}
-
-func parseYAML(yml []byte) ([]pathUrl, error) {
-    var pathUrls []pathUrl
-
-	err := yaml.Unmarshal(yml, &pathUrls)
+func JSONHandler(filename string, fallback http.Handler) (http.HandlerFunc, error) {
+	yml, err := readFile(filename, fallback)
 	if err != nil {
-        return nil, err
+		return fallbackHandler(fallback), nil
 	}
 
-	return pathUrls, nil
+	parsedYaml, err := parseJSON(yml)
+	if err != nil {
+		return nil, err
+	}
+
+	pathMap := buildMap(parsedYaml)
+	return MapHandler(pathMap, fallback), nil
 }
 
-func buildMap(pathUrls []pathUrl) map[string]string {
-    pathsToUrls := make(map[string]string)
-    for _, pu := range pathUrls {
-        pathsToUrls[pu.Path] = pu.URL
-    }
+func readFile(filename string, fallback http.Handler) ([]byte, error) {
+	if filename == "" {
+		return nil, errors.New("No filename specified")
+	}
 
-    return pathsToUrls
+	return ioutil.ReadFile(filename)
+}
+
+func fallbackHandler(fallback http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fallback.ServeHTTP(w, r)
+	}
 }
