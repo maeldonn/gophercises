@@ -54,6 +54,15 @@ func readFile(filename string, fallback http.Handler) ([]byte, error) {
 	return ioutil.ReadFile(filename)
 }
 
+func DBHandler(fallback http.Handler) (http.HandlerFunc, error) {
+	pathMap, err := getAllUrls()
+	if err != nil {
+		return fallbackHandler(fallback), nil
+	}
+
+	return MapHandler(pathMap, fallback), nil
+}
+
 func fallbackHandler(fallback http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fallback.ServeHTTP(w, r)

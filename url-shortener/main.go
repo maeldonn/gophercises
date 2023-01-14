@@ -32,8 +32,13 @@ func main() {
 		panic(err)
 	}
 
+	dbHandler, err := urlshort.DBHandler(jsonHandler)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", jsonHandler)
+	http.ListenAndServe(":8080", dbHandler)
 }
 
 func defaultMux() *http.ServeMux {
