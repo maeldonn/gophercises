@@ -10,21 +10,31 @@ import (
 var tmpl = template.Must(template.ParseFiles("tmpl/index.html"))
 
 type handler struct {
-	s Story
+	s      Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
 }
 
-func NewHandler(s Story) handler {
-	return handler{s}
-}
-
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func defaultPathFn(r *http.Request) string {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
 		path = "/intro"
 	}
+	return path[1:]
+}
 
-	if chapter, ok := h.s[path[1:]]; ok {
-		err := tmpl.Execute(w, chapter)
+func NewHandler(s Story, opts ...HandlerOption) handler {
+	h := handler{s, tmpl, defaultPathFn}
+	for _, opt := range opts {
+		opt(&h)
+	}
+	return h
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := h.pathFn(r)
+	if chapter, ok := h.s[path]; ok {
+		err := h.t.Execute(w, chapter)
 		if err != nil {
 			log.Printf("%v", err)
 			http.Error(w, "Something went wrong...", http.StatusInternalServerError)
