@@ -2,8 +2,8 @@ package urlshort
 
 import (
 	"errors"
-	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
@@ -51,7 +51,7 @@ func readFile(filename string, fallback http.Handler) ([]byte, error) {
 		return nil, errors.New("No filename specified")
 	}
 
-	return ioutil.ReadFile(filename)
+	return os.ReadFile(filename)
 }
 
 func DBHandler(fallback http.Handler) (http.HandlerFunc, error) {
