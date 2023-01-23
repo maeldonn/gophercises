@@ -9,21 +9,21 @@ import (
 )
 
 func main() {
-    r := mustReadFile("index.html")
+	r := mustReadFile("ex3.html")
 
-    links, err := link.Parse(r)
-    if err != nil {
-        // TODO: Do smthg
-    }
+	links, err := link.Parse(r)
+	if err != nil {
+		// TODO: Do smthg
+	}
 
-    fmt.Println(links)
+	fmt.Println(links)
 }
 
 func mustReadFile(filename string) io.Reader {
-    buffer, err := os.Open("templates/" + filename)
-    if err != nil {
-        panic(err)
-    }
+	buffer, err := os.Open("templates/" + filename)
+	if err != nil {
+		panic(err)
+	}
 
-    return buffer
+	return buffer
 }

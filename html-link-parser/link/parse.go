@@ -1,8 +1,8 @@
 package link
 
 import (
-	"fmt"
 	"io"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -20,17 +20,48 @@ func Parse(r io.Reader) ([]Link, error) {
 	if err != nil {
 		return nil, err
 	}
-	depthFirstSearch(doc, "")
-	return nil, nil
+	nodes := linkNodes(doc)
+	links := make([]Link, len(nodes))
+	for i, node := range nodes {
+		links[i] = buildLink(node)
+	}
+	return links, nil
 }
 
-func depthFirstSearch(n *html.Node, padding string) {
-	msg := n.Data
-	if n.Type == html.ElementNode {
-		msg = "<" + msg + ">"
+func buildLink(n *html.Node) Link {
+	var l Link
+	for _, attr := range n.Attr {
+		if attr.Key == "href" {
+			l.Href = attr.Val
+			break
+		}
 	}
-	fmt.Println(padding, msg)
+	l.Text = getText(n)
+	return l
+}
+
+func getText(n *html.Node) string {
+	if n.Type == html.TextNode {
+		return n.Data
+	}
+	if n.Type != html.ElementNode {
+		return ""
+	}
+
+	var builder strings.Builder
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		depthFirstSearch(c, padding+"  ")
+		builder.WriteString(getText(c))
 	}
+	return strings.Join(strings.Fields(builder.String()), " ")
+}
+
+func linkNodes(n *html.Node) []*html.Node {
+	if n.Type == html.ElementNode && n.Data == "a" {
+		return []*html.Node{n}
+	}
+	var nodes []*html.Node
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		nodes = append(nodes, linkNodes(c)...)
+	}
+	return nodes
 }
