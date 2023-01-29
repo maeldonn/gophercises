@@ -9,12 +9,12 @@ import (
 )
 
 func init() {
-	RootCmd.AddCommand(doCmd)
+	RootCmd.AddCommand(rmCmd)
 }
 
-var doCmd = &cobra.Command{
-	Use:   "do",
-	Short: "Mark a task as completed",
+var rmCmd = &cobra.Command{
+	Use:   "rm",
+	Short: "Delete a task from your task list",
 	Run: func(cmd *cobra.Command, args []string) {
 		ids := parseIds(args)
 		tasks, err := db.AllTasks()
@@ -28,11 +28,11 @@ var doCmd = &cobra.Command{
 				continue
 			}
 			task := tasks[id-1]
-			err := db.CompleteTask(task.Key)
+			err := db.DeleteTask(task.Key)
 			if err != nil {
-				fmt.Printf("Failed to complete \"%d\". Error: %s\n", id, err)
+				fmt.Printf("Failed to delete \"%d\". Error: %s\n", id, err)
 			} else {
-				fmt.Printf("Completed \"%d\"\n", id)
+				fmt.Printf("Deleted \"%d\"\n", id)
 			}
 		}
 	},

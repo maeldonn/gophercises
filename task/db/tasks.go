@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -13,8 +14,9 @@ var (
 )
 
 type Task struct {
-	Key   int
-	Value string
+	Key       int
+	Value     string
+	Completed bool
 }
 
 func Init(dbPath string) error {
@@ -29,14 +31,22 @@ func Init(dbPath string) error {
 	})
 }
 
-func CreateTask(task string) (int, error) {
+func CreateTask(value string) (int, error) {
 	var id int
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(taskBucket)
 		id64, _ := b.NextSequence()
 		id = int(id64)
 		key := itob(id)
-		return b.Put(key, []byte(task))
+		task, err := json.Marshal(Task{
+			Key:       id,
+			Value:     value,
+			Completed: false,
+		})
+		if err != nil {
+			return err
+		}
+		return b.Put(key, task)
 	})
 	if err != nil {
 		return -1, err
@@ -50,10 +60,14 @@ func AllTasks() ([]Task, error) {
 		b := tx.Bucket(taskBucket)
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			tasks = append(tasks, Task{
-				Key:   btoi(k),
-				Value: string(v),
-			})
+			var task Task
+			err := json.Unmarshal(v, &task)
+			if err != nil {
+				return err
+			}
+
+			task.Key = btoi(k)
+			tasks = append(tasks, task)
 		}
 		return nil
 	})
@@ -61,6 +75,56 @@ func AllTasks() ([]Task, error) {
 		return nil, err
 	}
 	return tasks, nil
+}
+
+func CompletedTasks() ([]Task, error) {
+	var tasks []Task
+	err := db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(taskBucket)
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var task Task
+			err := json.Unmarshal(v, &task)
+			if err != nil {
+				return err
+			}
+
+			if !task.Completed {
+				continue
+			}
+
+			task.Key = btoi(k)
+			tasks = append(tasks, task)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func CompleteTask(id int) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		var (
+			b   = tx.Bucket(taskBucket)
+			key = itob(id)
+		)
+
+		var task Task
+		err := json.Unmarshal(b.Get(key), &task)
+		if err != nil {
+			return err
+		}
+
+		task.Completed = !task.Completed
+		bTask, err := json.Marshal(task)
+		if err != nil {
+			return err
+		}
+
+		return b.Put(key, bTask)
+	})
 }
 
 func DeleteTask(key int) error {

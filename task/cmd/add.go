@@ -15,7 +15,7 @@ func init() {
 
 var addCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Adds a task to you task list.",
+	Short: "Add a task to your task list.",
 	Run: func(cmd *cobra.Command, args []string) {
 		task := strings.Join(args, " ")
 		_, err := db.CreateTask(task)
