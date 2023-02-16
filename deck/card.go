@@ -92,10 +92,12 @@ func absRank(c Card) int {
 	return int(c.Suit)*int(maxRank) + int(c.Rank)
 }
 
+var shuffleRand = rand.New(rand.NewSource(time.Now().Unix()))
+
 func Shuffle(cards []Card) []Card {
 	shuffled := make([]Card, len(cards))
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for i, j := range r.Perm(len(cards)) {
+	perm := shuffleRand.Perm(len(cards))
+	for i, j := range perm {
 		shuffled[i] = cards[j]
 	}
 	return shuffled
@@ -110,5 +112,27 @@ func Jokers(n int) func([]Card) []Card {
 			})
 		}
 		return cards
+	}
+}
+
+func Filter(f func(card Card) bool) func([]Card) []Card {
+	return func(cards []Card) []Card {
+		var filtered []Card
+		for _, c := range cards {
+			if !f(c) {
+				filtered = append(filtered, c)
+			}
+		}
+		return filtered
+	}
+}
+
+func Deck(n int) func([]Card) []Card {
+	return func(cards []Card) []Card {
+		var decks []Card
+		for i := 0; i < n; i++ {
+			decks = append(decks, cards...)
+		}
+		return decks
 	}
 }

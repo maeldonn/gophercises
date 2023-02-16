@@ -1,6 +1,9 @@
 package deck
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
 
 func TestString(t *testing.T) {
 	testcases := []struct {
@@ -45,6 +48,15 @@ func TestSort(t *testing.T) {
 	}
 }
 
+func TestShuffle(t *testing.T) {
+	shuffleRand = rand.New(rand.NewSource(0))
+	originalDeck := New()
+	cards := New(Shuffle)
+	if cards[0] != originalDeck[40] {
+		t.Errorf("Expected the first card to be %s, got %s", originalDeck[40], cards[0])
+	}
+}
+
 func TestJokersCount(t *testing.T) {
 	cards := New(Jokers(2))
 	jokers := getJokers(cards)
@@ -75,4 +87,23 @@ func getJokers(cards []Card) []Card {
 		}
 	}
 	return jokers
+}
+
+func TestFilter(t *testing.T) {
+	filterFn := func(card Card) bool {
+		return card.Suit == Heart
+	}
+	cards := New(Filter(filterFn))
+	for _, card := range cards {
+		if card.Suit == Heart {
+			t.Errorf("Expected all Heart cards to be filtered out, got %+v", card)
+		}
+	}
+}
+
+func TestDeck(t *testing.T) {
+	cards := New(Deck(3))
+	if len(cards) != 13*4*3 {
+		t.Errorf("Expected %d cards, got %d cards.", 13*4*3, len(cards))
+	}
 }
